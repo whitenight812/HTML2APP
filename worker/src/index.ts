@@ -16,22 +16,29 @@ const worker = new Worker<BuildJobData>(
   'build-apk',
   async (job) => {
     const { taskId, config: buildConfig } = job.data;
+    let buildDir: string | undefined;
 
-    const result = await runPipeline(taskId, buildConfig, {
-      updateProgress: async (value) => {
-        await job.updateProgress(value);
-      },
-    });
+    try {
+      const result = await runPipeline(taskId, buildConfig, {
+        updateProgress: async (value) => {
+          await job.updateProgress(value);
+        },
+      });
 
-    // Copy APK to shared output directory
-    await fs.mkdir(apkOutputDir, { recursive: true });
-    const destPath = path.join(apkOutputDir, `${taskId}.apk`);
-    await fs.copyFile(result.apkPath, destPath);
+      buildDir = result.buildDir;
 
-    // Clean up build directory now that the APK is safely copied out
-    await cleanupTemplate(result.buildDir);
+      // Copy APK to shared output directory
+      await fs.mkdir(apkOutputDir, { recursive: true });
+      const destPath = path.join(apkOutputDir, `${taskId}.apk`);
+      await fs.copyFile(result.apkPath, destPath);
 
-    return { apkUrl: `/api/build/${taskId}/download`, appName: result.appName };
+      return { apkUrl: `/api/build/${taskId}/download`, appName: result.appName };
+    } finally {
+      // Always clean up the build directory, even on failure
+      if (buildDir) {
+        await cleanupTemplate(buildDir).catch(() => {});
+      }
+    }
   },
   {
     connection,

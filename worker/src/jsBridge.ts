@@ -2,22 +2,41 @@ import fs from 'fs/promises';
 import path from 'path';
 import type { BuildConfig } from '../../shared/types';
 
+async function findMainActivity(javaDir: string): Promise<string | null> {
+  try {
+    const entries = await fs.readdir(javaDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(javaDir, entry.name);
+      if (entry.isDirectory()) {
+        const found = await findMainActivity(fullPath);
+        if (found) return found;
+      } else if (entry.name === 'MainActivity.java') {
+        return fullPath;
+      }
+    }
+  } catch {
+    // Directory not accessible
+  }
+  return null;
+}
+
 export async function injectJSBridge(
   buildDir: string,
   config: BuildConfig
 ): Promise<void> {
-  // Find MainActivity.java
-  const mainActivityPath = path.join(
-    buildDir, 'android', 'app', 'src', 'main', 'java',
-    'com', 'html2app', sanitizeDir(config.appName || 'app'),
-    'MainActivity.java'
-  );
+  const javaDir = path.join(buildDir, 'android', 'app', 'src', 'main', 'java');
+  const mainActivityPath = await findMainActivity(javaDir);
+
+  if (!mainActivityPath) {
+    console.warn('MainActivity.java not found, skipping JS bridge injection');
+    return;
+  }
 
   let activityContent: string;
   try {
     activityContent = await fs.readFile(mainActivityPath, 'utf-8');
   } catch {
-    console.warn('MainActivity.java not found, skipping JS bridge injection');
+    console.warn('MainActivity.java not readable, skipping JS bridge injection');
     return;
   }
 
@@ -83,8 +102,4 @@ export async function injectJSBridge(
   );
 
   await fs.writeFile(mainActivityPath, activityContent);
-}
-
-function sanitizeDir(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'wrapper';
 }

@@ -8,6 +8,13 @@ import { injectJSBridge } from './jsBridge';
 import { buildApk, syncCapacitor } from './gradleBuilder';
 import { signApk } from './signer';
 
+function isPrivateHost(hostname: string): boolean {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
+  if (hostname.startsWith('10.') || hostname.startsWith('192.168.')) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(hostname)) return true;
+  return false;
+}
+
 export interface PipelineResult {
   apkPath: string;
   appName: string;
@@ -41,22 +48,29 @@ export async function runPipeline(
     await generateIcons(config.icon, androidResDir);
   } else if (siteInfo.faviconUrl) {
     try {
-      const response = await fetch(siteInfo.faviconUrl);
-      if (response.ok) {
-        const iconBuffer = Buffer.from(await response.arrayBuffer());
-        await generateIcons(iconBuffer, androidResDir);
+      // SSRF guard: validate favicon hostname before fetching
+      const faviconHostname = new URL(siteInfo.faviconUrl).hostname;
+      if (!isPrivateHost(faviconHostname)) {
+        const response = await fetch(siteInfo.faviconUrl, {
+          signal: AbortSignal.timeout(10000),
+        });
+        if (response.ok) {
+          const iconBuffer = Buffer.from(await response.arrayBuffer());
+          await generateIcons(iconBuffer, androidResDir);
+        }
       }
     } catch {
       // Continue without custom icons
     }
   }
-  await job.updateProgress({ progress: 45, step: '正在注入JS桥接...' });
-  await injectJSBridge(buildDir, config);
-  await job.updateProgress({ progress: 50, step: '配置注入完成' });
+  await job.updateProgress({ progress: 42, step: '正在同步原生插件...' });
 
-  // Step 4: Sync Capacitor (50-55%)
-  await job.updateProgress({ progress: 52, step: '正在同步原生插件...' });
+  // Sync Capacitor first so Java source dirs match the injected appId,
+  // then inject the JS bridge so it can find MainActivity.java
   await syncCapacitor(buildDir);
+  await job.updateProgress({ progress: 50, step: '正在注入JS桥接...' });
+  await injectJSBridge(buildDir, config);
+  await job.updateProgress({ progress: 55, step: '配置注入完成' });
 
   // Step 5: Build APK (55-90%)
   await job.updateProgress({ progress: 55, step: '正在编译APK (这可能需要几分钟)...' });

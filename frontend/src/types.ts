@@ -1,18 +1,22 @@
+export type Permission = 'camera' | 'gps' | 'storage' | 'microphone';
+
 export interface BuildConfig {
   url: string;
   appName?: string;
   icon?: string;
   splashBackground?: string;
-  permissions?: string[];
+  permissions?: Permission[];
   offlineCache?: boolean;
   pushNotifications?: {
     enabled: boolean;
     onesignalAppId?: string;
+    fcmSenderId?: string;
   };
   admob?: {
     enabled: boolean;
     bannerId?: string;
     interstitialId?: string;
+    rewardedId?: string;
   };
   theme?: {
     primaryColor?: string;

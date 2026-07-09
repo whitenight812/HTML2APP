@@ -13,7 +13,7 @@ export default function DownloadPanel({ apkUrl, taskId, onNewBuild }: Props) {
     // Generate QR code lazily
     import('qrcode').then((QRCode) => {
       if (qrRef.current) {
-        QRCode.toCanvas(qrRef.current, apkUrl, {
+        QRCode.toCanvas(qrRef.current, new URL(apkUrl, window.location.origin).href, {
           width: 160,
           margin: 2,
           color: { dark: '#1f2937', light: '#ffffff' },

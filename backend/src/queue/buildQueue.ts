@@ -7,7 +7,7 @@ const connection = {
   port: config.redis.port,
 };
 
-export const buildQueue = new Queue<BuildJobData, any, string>('build-apk', {
+export const buildQueue = new Queue<BuildJobData>('build-apk', {
   connection,
   defaultJobOptions: {
     attempts: 2,
@@ -21,7 +21,11 @@ export async function addBuildJob(
   taskId: string,
   buildConfig: BuildJobData['config']
 ): Promise<void> {
-  await buildQueue.add('build', { taskId, config: buildConfig }, { jobId: taskId });
+  await buildQueue.add(
+    'build',
+    { taskId, config: buildConfig },
+    { jobId: taskId }
+  );
 }
 
 export function getJobProgress(job: Job): number {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { BuildConfig } from '../types';
+import type { BuildConfig, Permission } from '../types';
 
 interface Props {
   config: BuildConfig;
@@ -9,12 +9,12 @@ interface Props {
 export default function AdvancedConfig({ config, onChange }: Props) {
   const [expanded, setExpanded] = useState(false);
 
-  const togglePermission = (perm: string) => {
+  const togglePermission = (perm: Permission) => {
     const current = config.permissions || [];
     const next = current.includes(perm)
       ? current.filter(p => p !== perm)
       : [...current, perm];
-    onChange({ ...config, permissions: next as BuildConfig['permissions'] });
+    onChange({ ...config, permissions: next });
   };
 
   return (
@@ -32,12 +32,12 @@ export default function AdvancedConfig({ config, onChange }: Props) {
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-2">权限设置</h4>
             <div className="flex flex-wrap gap-2">
-              {[
-                { key: 'camera', label: '相机' },
-                { key: 'gps', label: 'GPS定位' },
-                { key: 'storage', label: '文件读写' },
-                { key: 'microphone', label: '麦克风' },
-              ].map(({ key, label }) => (
+              {([
+                { key: 'camera' as const, label: '相机' },
+                { key: 'gps' as const, label: 'GPS定位' },
+                { key: 'storage' as const, label: '文件读写' },
+                { key: 'microphone' as const, label: '麦克风' },
+              ]).map(({ key, label }) => (
                 <label key={key} className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"

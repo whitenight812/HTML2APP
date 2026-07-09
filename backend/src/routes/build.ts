@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { addBuildJob, getJobStatus } from '../queue/buildQueue';
 import { ensureUploadDir, getApkPath, apkExists, scheduleCleanup } from '../storage/apkStorage';
+import { isPrivateHost } from '../ssrfGuard';
 import type { BuildConfig } from '../../../shared/types';
 
 const buildSchema = z.object({
@@ -47,6 +48,16 @@ export async function buildRoutes(app: FastifyInstance) {
     const taskId = uuidv4();
     const config = parsed.data as BuildConfig;
 
+    // SSRF guard: validate hostname before queueing
+    try {
+      const hostname = new URL(config.url).hostname;
+      if (isPrivateHost(hostname)) {
+        return reply.status(400).send({ error: '不允许访问该地址' });
+      }
+    } catch {
+      return reply.status(400).send({ error: '网址格式不正确' });
+    }
+
     await addBuildJob(taskId, config);
 
     return {
@@ -78,10 +89,10 @@ export async function buildRoutes(app: FastifyInstance) {
     }
 
     const filePath = getApkPath(taskId);
-    // Schedule cleanup after download
     scheduleCleanup(taskId);
-    return reply.type('application/vnd.android.package-archive').send(
-      await readFile(filePath)
-    );
+    return reply
+      .header('Content-Disposition', `attachment; filename="${taskId}.apk"`)
+      .type('application/vnd.android.package-archive')
+      .send(await readFile(filePath));
   });
 }

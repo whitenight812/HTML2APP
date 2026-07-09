@@ -2,6 +2,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import { config } from '../config';
 
+const cleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 export async function ensureUploadDir(): Promise<void> {
   await fs.mkdir(config.uploadDir, { recursive: true });
 }
@@ -19,14 +21,23 @@ export async function apkExists(taskId: string): Promise<boolean> {
   }
 }
 
-export async function scheduleCleanup(taskId: string): Promise<void> {
-  setTimeout(async () => {
+export function scheduleCleanup(taskId: string): void {
+  // Single timer per taskId — clear any existing timer before creating a new one
+  const existing = cleanupTimers.get(taskId);
+  if (existing) {
+    clearTimeout(existing);
+  }
+
+  const timer = setTimeout(async () => {
+    cleanupTimers.delete(taskId);
     try {
       await fs.unlink(getApkPath(taskId));
     } catch {
       // File already gone — nothing to do
     }
   }, config.apkRetentionMs);
+
+  cleanupTimers.set(taskId, timer);
 }
 
 // Clean up any leftover APKs on startup
