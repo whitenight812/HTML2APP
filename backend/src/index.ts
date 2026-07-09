@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import Redis from 'ioredis';
 import { config } from './config';
+import { previewRoutes } from './routes/preview';
 
 const app = Fastify({ logger: true });
 
@@ -26,6 +27,8 @@ async function start() {
     } catch {}
     return { status: redisOk ? 'ok' : 'degraded', redis: redisOk, timestamp: Date.now() };
   });
+
+  await app.register(previewRoutes);
 
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
