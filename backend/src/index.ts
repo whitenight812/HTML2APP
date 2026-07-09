@@ -3,6 +3,8 @@ import cors from '@fastify/cors';
 import Redis from 'ioredis';
 import { config } from './config';
 import { previewRoutes } from './routes/preview';
+import { buildRoutes } from './routes/build';
+import { cleanupStaleApks } from './storage/apkStorage';
 
 const app = Fastify({ logger: true });
 
@@ -29,6 +31,9 @@ async function start() {
   });
 
   await app.register(previewRoutes);
+
+  await cleanupStaleApks();
+  await app.register(buildRoutes);
 
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
