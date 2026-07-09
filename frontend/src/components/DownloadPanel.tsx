@@ -1,24 +1,59 @@
+import { useEffect, useRef } from 'react';
+
 interface Props {
   apkUrl: string;
   taskId: string;
   onNewBuild: () => void;
 }
 
-/** Placeholder - will be fully implemented in Task 15 */
 export default function DownloadPanel({ apkUrl, taskId, onNewBuild }: Props) {
+  const qrRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    // Generate QR code lazily
+    import('qrcode').then((QRCode) => {
+      if (qrRef.current) {
+        QRCode.toCanvas(qrRef.current, apkUrl, {
+          width: 160,
+          margin: 2,
+          color: { dark: '#1f2937', light: '#ffffff' },
+        });
+      }
+    });
+  }, [taskId, apkUrl]);
+
   return (
-    <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg">
-      <h3 className="font-semibold text-gray-900">DownloadPanel (Task 15)</h3>
-      <div className="mt-2 space-y-2 text-sm text-gray-600">
-        <p>APK URL: {apkUrl}</p>
-        <p>Task ID: {taskId}</p>
+    <div className="mt-8 p-6 bg-white border border-green-200 rounded-lg text-center">
+      <div className="text-green-600 text-2xl mb-1">构建成功!</div>
+      <p className="text-sm text-gray-500 mb-6">APK 已生成，请下载安装</p>
+
+      {/* QR Code */}
+      <div className="flex justify-center mb-4">
+        <canvas ref={qrRef} />
       </div>
-      <button
-        onClick={onNewBuild}
-        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg"
+      <p className="text-xs text-gray-400 mb-6">手机扫码即可下载</p>
+
+      {/* Download button */}
+      <a
+        href={apkUrl}
+        className="inline-block px-8 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors mb-4"
+        download
       >
-        New Build
-      </button>
+        下载 APK
+      </a>
+
+      <div>
+        <button
+          onClick={onNewBuild}
+          className="text-sm text-blue-600 hover:text-blue-800"
+        >
+          制作另一个 APK
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-400 mt-4">
+        下载链接有效期为 2 小时
+      </p>
     </div>
   );
 }
