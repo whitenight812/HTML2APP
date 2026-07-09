@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+*.apk
+*.aab
+backend/uploads/
+worker/template/android/app/build/
+worker/template/android/build/
+worker/template/android/.gradle/
+worker/template/android/capacitor-cordova-android-plugins/
+worker/template/node_modules/
