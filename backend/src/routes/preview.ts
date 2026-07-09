@@ -15,6 +15,12 @@ const FETCH_TIMEOUT_MS = 10_000;
 function isPrivateHost(hostname: string): boolean {
   const lower = hostname.toLowerCase();
 
+  // ---- IPv4-mapped IPv6 detection (e.g., ::ffff:127.0.0.1) ----
+  const mappedMatch = /^\[?::ffff:([\d.]+)\]?$/i.exec(lower);
+  if (mappedMatch) {
+    return isPrivateHost(mappedMatch[1]);
+  }
+
   // Block known localhost / loopback hostnames
   const blockedHostnames = [
     'localhost',
@@ -206,6 +212,12 @@ export async function previewRoutes(app: FastifyInstance) {
         return reply
           .status(400)
           .send({ error: `无法访问目标网站 (HTTP ${response.status})` });
+      }
+
+      // ---- SSRF guard: re-validate hostname after redirects ----
+      const finalHostname = new URL(response.url).hostname;
+      if (isPrivateHost(finalHostname)) {
+        return reply.status(400).send({ error: '不允许访问该地址' });
       }
 
       // Stream the body with a 5 MB cap
