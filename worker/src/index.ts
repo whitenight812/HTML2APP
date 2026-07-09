@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import type { BuildJobData } from '../../shared/types';
 import { runPipeline } from './pipeline';
+import { cleanupTemplate } from './templateManager';
 
 const connection = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -23,10 +24,12 @@ const worker = new Worker<BuildJobData>(
     });
 
     // Copy APK to shared output directory
-    const outputDir = path.join(apkOutputDir);
-    await fs.mkdir(outputDir, { recursive: true });
-    const destPath = path.join(outputDir, `${taskId}.apk`);
+    await fs.mkdir(apkOutputDir, { recursive: true });
+    const destPath = path.join(apkOutputDir, `${taskId}.apk`);
     await fs.copyFile(result.apkPath, destPath);
+
+    // Clean up build directory now that the APK is safely copied out
+    await cleanupTemplate(result.buildDir);
 
     return { apkUrl: `/api/build/${taskId}/download`, appName: result.appName };
   },
