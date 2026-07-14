@@ -32,23 +32,29 @@ export async function injectJSBridge(
     return;
   }
 
-  let activityContent: string;
+  let content: string;
   try {
-    activityContent = await fs.readFile(mainActivityPath, 'utf-8');
+    content = await fs.readFile(mainActivityPath, 'utf-8');
   } catch {
     console.warn('MainActivity.java not readable, skipping JS bridge injection');
     return;
   }
 
-  // Add WebView settings and JS interface
-  const bridgeCode = `
-  // HTML2APP JS Bridge — auto-injected
-  import android.webkit.JavascriptInterface;
-  import android.webkit.WebSettings;
+  // 1. Add imports at the TOP of the file (after the package declaration)
+  const importBlock = `
+import android.webkit.JavascriptInterface;
+import android.webkit.WebSettings;
+import android.widget.Toast;
+`;
 
-  // Add this inside the MainActivity class, after loadUrl:
-  // configureWebView();
+  // Insert after "package ...;" line
+  content = content.replace(
+    /(package\s+[\w.]+;)/,
+    '$1' + importBlock,
+  );
 
+  // 2. Add class body code before the final closing brace
+  const classCode = `
   private void configureWebView() {
     WebSettings settings = getBridge().getWebView().getSettings();
     settings.setJavaScriptEnabled(true);
@@ -58,11 +64,6 @@ export async function injectJSBridge(
     settings.setAppCacheEnabled(true);
     settings.setCacheMode(WebSettings.LOAD_DEFAULT);
     ` : ''}
-    ${(config.theme?.pullToRefresh) ? `
-    // Pull to refresh is handled by Capacitor's SwipeRefreshLayout
-    ` : ''}
-
-    // Register JS Bridge
     getBridge().getWebView().addJavascriptInterface(
       new HTML2APPBridge(this), "HTML2APP"
     );
@@ -78,28 +79,26 @@ export async function injectJSBridge(
     @JavascriptInterface
     public void showToast(String message) {
       activity.runOnUiThread(() ->
-        android.widget.Toast.makeText(activity, message,
-          android.widget.Toast.LENGTH_SHORT).show()
+        Toast.makeText(activity, message, Toast.LENGTH_SHORT).show()
       );
     }
 
     @JavascriptInterface
     public String getAppVersion() {
-      return android.os.BuildConfig.VERSION_NAME;
+      return "1.0";
     }
 
     @JavascriptInterface
     public void exitApp() {
-      activity.finish();
+      activity.finishAndRemoveTask();
     }
   }
-  `;
+`;
 
-  // Inject the bridge before the closing brace of the class
-  activityContent = activityContent.replace(
+  content = content.replace(
     /}\s*$/,
-    bridgeCode + '\n}'
+    classCode + '\n}',
   );
 
-  await fs.writeFile(mainActivityPath, activityContent);
+  await fs.writeFile(mainActivityPath, content);
 }

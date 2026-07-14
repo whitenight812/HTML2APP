@@ -35,6 +35,7 @@ services:
     build:
       context: .
       dockerfile: worker/docker/Dockerfile
+    command: ["node", "dist/worker/src/index.js"]
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

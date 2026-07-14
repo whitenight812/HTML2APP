@@ -88,15 +88,38 @@ RUN ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager \
 # -------------------------------------------------------------------
 WORKDIR /app
 
-# Install worker npm dependencies (layer cached unless package.json changes)
-COPY worker/package.json worker/package-lock.json* ./
-RUN npm install
+# Configure Gradle mirrors (essential for builds in China)
+RUN mkdir -p /root/.gradle
+RUN printf 'allprojects {\n\
+    repositories {\n\
+        maven { url "https://maven.aliyun.com/repository/public" }\n\
+        maven { url "https://maven.aliyun.com/repository/google" }\n\
+        maven { url "https://maven.aliyun.com/repository/gradle-plugin" }\n\
+        maven { url "https://maven.aliyun.com/repository/central" }\n\
+        google()\n\
+        mavenCentral()\n\
+    }\n\
+}\n\
+\n\
+settingsEvaluated { settings ->\n\
+    settings.pluginManagement.repositories {\n\
+        maven { url "https://maven.aliyun.com/repository/gradle-plugin" }\n\
+        maven { url "https://maven.aliyun.com/repository/public" }\n\
+        gradlePluginPortal()\n\
+        google()\n\
+        mavenCentral()\n\
+    }\n\
+}\n\
+' > /root/.gradle/init.gradle
 
-# Copy source, template, and shared types -- then build
+# Preserve monorepo structure so relative imports (../../shared/) resolve
+COPY worker/package.json worker/package-lock.json* ./worker/
+WORKDIR /app/worker
+RUN npm install
+COPY worker/tsconfig.json ./
 COPY worker/src/ ./src/
 COPY worker/template/ ./template/
-COPY shared/ ./shared/
-
+COPY shared/ /app/shared/
 RUN npm run build
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/worker/src/index.js"]

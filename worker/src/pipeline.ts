@@ -6,7 +6,6 @@ import { generateIcons } from './iconGenerator';
 import { injectConfig } from './configInjector';
 import { injectJSBridge } from './jsBridge';
 import { buildApk, syncCapacitor } from './gradleBuilder';
-import { signApk } from './signer';
 
 function isPrivateHost(hostname: string): boolean {
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') return true;
@@ -72,16 +71,10 @@ export async function runPipeline(
   await injectJSBridge(buildDir, config);
   await job.updateProgress({ progress: 55, step: '配置注入完成' });
 
-  // Step 5: Build APK (55-90%)
+  // Step 5: Build APK via Gradle (includes signing & zipalign)
   await job.updateProgress({ progress: 55, step: '正在编译APK (这可能需要几分钟)...' });
-  const unsignedApkPath = await buildApk(buildDir);
-  await job.updateProgress({ progress: 90, step: '编译完成' });
-
-  // Step 6: Sign & finalize (90-100%)
-  await job.updateProgress({ progress: 92, step: '正在签名APK...' });
-  const outputPath = path.join(buildDir, `${taskId}.apk`);
-  await signApk(unsignedApkPath, outputPath);
+  const apkPath = await buildApk(buildDir);
   await job.updateProgress({ progress: 100, step: '构建完成' });
 
-  return { apkPath: outputPath, appName, buildDir };
+  return { apkPath, appName, buildDir };
 }
