@@ -60,7 +60,7 @@ RUN wget -q "https://mirrors.cloud.tencent.com/gradle/gradle-${GRADLE_VERSION}-b
 # -------------------------------------------------------------------
 # Capacitor CLI (global install so `npx cap` works consistently)
 # -------------------------------------------------------------------
-RUN npm install -g @capacitor/cli@latest @capacitor/core@latest @capacitor/android@latest
+RUN npm install -g --registry https://registry.npmmirror.com @capacitor/cli@latest @capacitor/core@latest @capacitor/android@latest
 
 # -------------------------------------------------------------------
 # Android SDK command-line tools
@@ -122,7 +122,7 @@ settingsEvaluated { settings ->\n\
 # Preserve monorepo structure so relative imports (../../shared/) resolve
 COPY worker/package.json worker/package-lock.json* ./worker/
 WORKDIR /app/worker
-RUN npm install
+RUN npm install --registry https://registry.npmmirror.com
 COPY worker/tsconfig.json ./
 COPY worker/src/ ./src/
 COPY worker/template/ ./template/
