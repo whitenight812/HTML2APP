@@ -3,7 +3,7 @@ import type { BuildConfig } from '../../shared/types';
 import { createTemplate } from './templateManager';
 import { scrapeSiteInfo } from './siteScraper';
 import { generateIcons } from './iconGenerator';
-import { injectConfig } from './configInjector';
+import { injectConfig, injectAppId, buildAppId } from './configInjector';
 import { injectJSBridge } from './jsBridge';
 import { buildApk, syncCapacitor } from './gradleBuilder';
 
@@ -43,10 +43,10 @@ export async function runPipeline(
   await job.updateProgress({ progress: 35, step: '正在生成图标...' });
 
   const androidResDir = path.join(buildDir, 'android', 'app', 'src', 'main', 'res');
-  if (config.icon) {
-    await generateIcons(config.icon, androidResDir);
-  } else if (siteInfo.faviconUrl) {
-    try {
+  try {
+    if (config.icon) {
+      await generateIcons(config.icon, androidResDir);
+    } else if (siteInfo.faviconUrl) {
       // SSRF guard: validate favicon hostname before fetching
       const faviconHostname = new URL(siteInfo.faviconUrl).hostname;
       if (!isPrivateHost(faviconHostname)) {
@@ -58,15 +58,20 @@ export async function runPipeline(
           await generateIcons(iconBuffer, androidResDir);
         }
       }
-    } catch {
-      // Continue without custom icons
     }
+  } catch {
+    // Icon generation failed — continue with Capacitor defaults.
+    // Common causes: .ico files, unsupported image formats, corrupt data.
   }
   await job.updateProgress({ progress: 42, step: '正在同步原生插件...' });
 
-  // Sync Capacitor first so Java source dirs match the injected appId,
-  // then inject the JS bridge so it can find MainActivity.java
   await syncCapacitor(buildDir);
+
+  // Force-update appId in Gradle & Manifest — Capacitor sync doesn't always
+  // propagate appId changes from capacitor.config.json reliably
+  const appId = buildAppId(appName);
+  await injectAppId(buildDir, appId);
+
   await job.updateProgress({ progress: 50, step: '正在注入JS桥接...' });
   await injectJSBridge(buildDir, config);
   await job.updateProgress({ progress: 55, step: '配置注入完成' });

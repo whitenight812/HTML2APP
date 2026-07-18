@@ -22,6 +22,7 @@ export interface BuildConfig {
     primaryColor?: string;
     darkMode?: boolean;
     pullToRefresh?: boolean;
+    forceMobileViewport?: boolean;
   };
 }
 

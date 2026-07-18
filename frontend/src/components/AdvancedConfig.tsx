@@ -122,6 +122,17 @@ export default function AdvancedConfig({ config, onChange }: Props) {
                   onChange={(v) => onChange({ ...config, theme: { ...config.theme, darkMode: v } })}
                 />
               </label>
+
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <div className="text-sm font-medium text-slate-700">强制移动端适配</div>
+                  <div className="text-xs text-slate-400">为不兼容手机端的网页自动添加移动端视口</div>
+                </div>
+                <Toggle
+                  checked={config.theme?.forceMobileViewport || false}
+                  onChange={(v) => onChange({ ...config, theme: { ...config.theme, forceMobileViewport: v } })}
+                />
+              </label>
             </div>
           </div>
         </div>

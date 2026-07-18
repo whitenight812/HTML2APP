@@ -35,6 +35,7 @@ export interface ThemeConfig {
   primaryColor?: string;
   darkMode?: boolean;
   pullToRefresh?: boolean;
+  forceMobileViewport?: boolean;
 }
 
 export interface SitePreview {

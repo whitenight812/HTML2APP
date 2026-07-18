@@ -22,6 +22,7 @@ export default function App() {
   const [config, setConfig] = useState<BuildConfig>({ url: '' });
   const [step, setStep] = useState<'input' | 'configure' | 'building' | 'done'>('input');
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [buildError, setBuildError] = useState<string | null>(null);
   const { status, error } = useBuildTask(taskId);
 
   const handleUrlSubmit = async (url: string) => {
@@ -41,12 +42,13 @@ export default function App() {
   };
 
   const handleBuild = async () => {
+    setBuildError(null);
     setStep('building');
     try {
       const result = await submitBuild(config);
       setTaskId(result.taskId);
     } catch (err: any) {
-      console.error('Build submission failed:', err.message);
+      setBuildError(err.message || '构建提交失败，请稍后重试');
       setStep('configure');
     }
   };
@@ -132,6 +134,12 @@ export default function App() {
               <div className="mt-10 space-y-8">
                 <BasicConfig config={config} onChange={setConfig} preview={preview} />
                 <AdvancedConfig config={config} onChange={setConfig} />
+
+                {buildError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                    {buildError}
+                  </div>
+                )}
 
                 <button
                   onClick={handleBuild}

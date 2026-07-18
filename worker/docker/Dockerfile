@@ -89,15 +89,23 @@ RUN ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager \
 WORKDIR /app
 
 # Configure Gradle mirrors (essential for builds in China)
+# Must inject into buildscript.repositories too — allprojects alone
+# only touches project-level repositories, not the buildscript classpath.
 RUN mkdir -p /root/.gradle
 RUN printf 'allprojects {\n\
+    buildscript {\n\
+        repositories {\n\
+            maven { url "https://maven.aliyun.com/repository/public" }\n\
+            maven { url "https://maven.aliyun.com/repository/google" }\n\
+            maven { url "https://maven.aliyun.com/repository/gradle-plugin" }\n\
+            maven { url "https://maven.aliyun.com/repository/central" }\n\
+        }\n\
+    }\n\
     repositories {\n\
         maven { url "https://maven.aliyun.com/repository/public" }\n\
         maven { url "https://maven.aliyun.com/repository/google" }\n\
         maven { url "https://maven.aliyun.com/repository/gradle-plugin" }\n\
         maven { url "https://maven.aliyun.com/repository/central" }\n\
-        google()\n\
-        mavenCentral()\n\
     }\n\
 }\n\
 \n\
@@ -105,9 +113,8 @@ settingsEvaluated { settings ->\n\
     settings.pluginManagement.repositories {\n\
         maven { url "https://maven.aliyun.com/repository/gradle-plugin" }\n\
         maven { url "https://maven.aliyun.com/repository/public" }\n\
-        gradlePluginPortal()\n\
-        google()\n\
-        mavenCentral()\n\
+        maven { url "https://maven.aliyun.com/repository/google" }\n\
+        maven { url "https://maven.aliyun.com/repository/central" }\n\
     }\n\
 }\n\
 ' > /root/.gradle/init.gradle

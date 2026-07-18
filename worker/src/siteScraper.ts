@@ -16,7 +16,7 @@ export async function scrapeSiteInfo(url: string): Promise<SiteInfo> {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     // Extract page title
     const title = await page.title();

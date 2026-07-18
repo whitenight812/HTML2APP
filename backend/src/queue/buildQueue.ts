@@ -5,6 +5,9 @@ import type { BuildJobData, BuildStatus } from '../../../shared/types';
 const connection = {
   host: config.redis.host,
   port: config.redis.port,
+  connectTimeout: 5000,
+  maxRetriesPerRequest: 1,
+  enableOfflineQueue: false,
 };
 
 export const buildQueue = new Queue<BuildJobData>('build-apk', {

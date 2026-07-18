@@ -3,6 +3,7 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
@@ -14,6 +15,7 @@ services:
       retries: 5
 
   backend:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -32,6 +34,7 @@ services:
         condition: service_healthy
 
   worker:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: worker/docker/Dockerfile
@@ -43,21 +46,23 @@ services:
     volumes:
       - apk_uploads:/app/uploads
       - ./shared:/app/shared:ro
+      - android_keystore:/root/.android
     depends_on:
       redis:
         condition: service_healthy
-    deploy:
-      replicas: 2
+    mem_limit: 1.5G
 
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "5173:80"
+      - "80:80"
     depends_on:
       - backend
 
 volumes:
   redis_data:
   apk_uploads:
+  android_keystore:

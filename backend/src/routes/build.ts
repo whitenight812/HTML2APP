@@ -58,7 +58,15 @@ export async function buildRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: '网址格式不正确' });
     }
 
-    await addBuildJob(taskId, config);
+    try {
+      await addBuildJob(taskId, config);
+    } catch (err: any) {
+      request.log.error({ err }, 'Build queue unavailable');
+      return reply.status(503).send({
+        error: '构建服务暂时不可用，请稍后重试',
+        detail: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      });
+    }
 
     return {
       taskId,
