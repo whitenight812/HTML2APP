@@ -51,7 +51,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # -------------------------------------------------------------------
 # Gradle (system-wide, for Android build convenience)
 # -------------------------------------------------------------------
-RUN wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
+RUN wget -q "https://mirrors.cloud.tencent.com/gradle/gradle-${GRADLE_VERSION}-bin.zip" \
         -O /tmp/gradle.zip && \
     unzip -q /tmp/gradle.zip -d /opt && \
     ln -s "/opt/gradle-${GRADLE_VERSION}" /opt/gradle && \
